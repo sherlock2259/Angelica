@@ -1,0 +1,41 @@
+name: Build Angelica
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17 (for Gradle)
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+      
+    - name: Build with Gradle
+      run: ./gradlew build
+      env:
+        # 可选：如果需要发布到Maven，设置凭证
+        # MAVEN_USER: ${{ secrets.MAVEN_USER }}
+        # MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+      
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: Angelica-Build
+        path: |
+          build/libs/*.jar
+          build/libs/*.jar.md5
+        retention-days: 30
