@@ -2,10 +2,10 @@ name: Build Angelica
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
-  workflow_dispatch:  # 允许手动触发
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -20,7 +20,6 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: 'gradle'
         
     - name: Make gradlew executable
       run: chmod +x ./gradlew
