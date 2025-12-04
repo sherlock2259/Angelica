@@ -211,4 +211,119 @@ public class HUDCaching {
         GLStateManager.enableDepthTest();
         GLStateManager.enableAlphaTest();
         GLStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
-        GLStat
+        GLStateManager.disableBlend();
+    }
+
+    private static void drawTexturedRect(float width, float height) {
+        if (quadWidth != width || quadHeight != height) {
+            quadWidth = width;
+            quadHeight = height;
+            if (quadVAO != null) {
+                quadVAO.close();
+            }
+            quadVAO = rebuildVAO(width, height);
+        }
+        
+        // 保存当前状态
+        boolean depthTest = GL11.glGetBoolean(GL11.GL_DEPTH_TEST);
+        boolean stencilTest = GL11.glGetBoolean(GL11.GL_STENCIL_TEST);
+        boolean blend = GL11.glGetBoolean(GL11.GL_BLEND);
+        
+        // 渲染缓存纹理时禁用深度和模板测试
+        GLStateManager.disableDepthTest();
+        GLStateManager.disableStencilTest();
+        GLStateManager.enableTexture();
+        GLStateManager.enableBlend();
+        
+        quadVAO.render();
+        
+        // 恢复状态
+        if (depthTest) {
+            GLStateManager.enableDepthTest();
+        } else {
+            GLStateManager.disableDepthTest();
+        }
+        
+        if (stencilTest) {
+            GLStateManager.enableStencilTest();
+        } else {
+            GLStateManager.disableStencilTest();
+        }
+        
+        if (!blend) {
+            GLStateManager.disableBlend();
+        }
+    }
+
+
+    private static VertexBuffer rebuildVAO(float width, float height) {
+        final CapturingTessellator tessellator = TessellatorManager.startCapturingAndGet();
+        tessellator.startDrawingQuads();
+        tessellator.addVertexWithUV(0, height, 0.0, 0, 0);
+        tessellator.addVertexWithUV(width, height, 0.0, 1, 0);
+        tessellator.addVertexWithUV(width, 0, 0.0, 1, 1);
+        tessellator.addVertexWithUV(0, 0, 0.0, 0, 1);
+        tessellator.draw();
+        return TessellatorManager.stopCapturingToVAO(DefaultVertexFormat.POSITION_TEXTURE);
+    }
+
+    public static void disableHoloInventory() {
+        if (ModStatus.isHoloInventoryLoaded) {
+            HoloInventoryReflectionCompat.setAngelicaOverride(true);
+        }
+    }
+
+    @SuppressWarnings("unused") // called via ASM
+    public static class HUDCachingHooks {
+        public static boolean shouldReturnEarly() {
+            return renderingCacheOverride;
+        }
+        
+        public static boolean shouldRenderCrosshair() {
+            return !renderingCacheOverride || renderCrosshairsCaptured;
+        }
+        
+        public static boolean shouldRenderHelmet() {
+            return !renderingCacheOverride || renderHelmetCaptured;
+        }
+        
+        public static boolean shouldRenderPortal() {
+            return !renderingCacheOverride || renderPortalCapturedTicks > 0;
+        }
+        
+        public static boolean shouldRenderVignette() {
+            return !renderingCacheOverride || renderVignetteCaptured;
+        }
+        
+        public static void captureCrosshair() {
+            if (renderingCacheOverride) {
+                renderCrosshairsCaptured = true;
+            }
+        }
+        
+        public static void captureHelmet() {
+            if (renderingCacheOverride) {
+                renderHelmetCaptured = true;
+            }
+        }
+        
+        public static void capturePortal(float ticks) {
+            if (renderingCacheOverride) {
+                renderPortalCapturedTicks = ticks;
+            }
+        }
+        
+        public static void captureVignette() {
+            if (renderingCacheOverride) {
+                renderVignetteCaptured = true;
+            }
+        }
+        
+        public static void resetCaptures() {
+            renderCrosshairsCaptured = false;
+            renderHelmetCaptured = false;
+            renderPortalCapturedTicks = 0;
+            renderVignetteCaptured = false;
+        }
+    }
+}
