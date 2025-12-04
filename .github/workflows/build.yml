@@ -1,4 +1,4 @@
-name: Build Angelica
+name: build Angelica
 
 on:
   push:
