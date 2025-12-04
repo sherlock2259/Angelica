@@ -155,6 +155,9 @@ public class HUDCaching {
         GLStateManager.tryBlendFuncSeparate(GL11.GL_ONE, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ONE_MINUS_SRC_ALPHA);
         GLStateManager.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
         framebuffer.bindFramebufferTexture();
+        // 设置纹理过滤参数
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
         drawTexturedRect((float) resolution.getScaledWidth_double(), (float) resolution.getScaledHeight_double());
 
         GLStateManager.tryBlendFuncSeparate(GL11.GL_ONE, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
@@ -184,9 +187,11 @@ public class HUDCaching {
             quadVAO = rebuildVAO(width, height);
         }
         GLStateManager.disableDepthTest();
+        GLStateManager.disableAlphaTest();
         GLStateManager.enableTexture();
         quadVAO.render();
         GLStateManager.enableDepthTest();
+        GLStateManager.enableAlphaTest();
     }
 
 
@@ -211,6 +216,53 @@ public class HUDCaching {
     public static class HUDCachingHooks {
         public static boolean shouldReturnEarly() {
             return renderingCacheOverride;
+        }
+        
+        public static boolean shouldRenderCrosshair() {
+            return !renderingCacheOverride || renderCrosshairsCaptured;
+        }
+        
+        public static boolean shouldRenderHelmet() {
+            return !renderingCacheOverride || renderHelmetCaptured;
+        }
+        
+        public static boolean shouldRenderPortal() {
+            return !renderingCacheOverride || renderPortalCapturedTicks > 0;
+        }
+        
+        public static boolean shouldRenderVignette() {
+            return !renderingCacheOverride || renderVignetteCaptured;
+        }
+        
+        public static void captureCrosshair() {
+            if (renderingCacheOverride) {
+                renderCrosshairsCaptured = true;
+            }
+        }
+        
+        public static void captureHelmet() {
+            if (renderingCacheOverride) {
+                renderHelmetCaptured = true;
+            }
+        }
+        
+        public static void capturePortal(float ticks) {
+            if (renderingCacheOverride) {
+                renderPortalCapturedTicks = ticks;
+            }
+        }
+        
+        public static void captureVignette() {
+            if (renderingCacheOverride) {
+                renderVignetteCaptured = true;
+            }
+        }
+        
+        public static void resetCaptures() {
+            renderCrosshairsCaptured = false;
+            renderHelmetCaptured = false;
+            renderPortalCapturedTicks = 0;
+            renderVignetteCaptured = false;
         }
     }
 }
