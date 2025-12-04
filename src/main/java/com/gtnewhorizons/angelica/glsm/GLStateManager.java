@@ -115,7 +115,6 @@ public class GLStateManager {
     @Getter protected static boolean poppingAttributes;
     public static boolean BYPASS_CACHE = Boolean.parseBoolean(System.getProperty("angelica.disableGlCache", "false"));
     // +2 headroom for internal operations (display list compilation) that push cache but not driver
-    // 修改为适合移动设备/OpenGL ES环境的固定值
     public static final int MAX_ATTRIB_STACK_DEPTH = 32;
     public static final int MAX_MODELVIEW_STACK_DEPTH = 64;
     public static final int MAX_PROJECTION_STACK_DEPTH = 4;
