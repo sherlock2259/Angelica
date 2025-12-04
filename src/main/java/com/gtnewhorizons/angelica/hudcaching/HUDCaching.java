@@ -15,13 +15,6 @@ import com.gtnewhorizons.angelica.mixins.interfaces.GuiIngameForgeAccessor;
 import com.gtnewhorizons.angelica.mixins.interfaces.RenderGameOverlayEventAccessor;
 import com.kentington.thaumichorizons.common.ThaumicHorizons;
 import cpw.mods.fml.common.eventhandler.EventPriority;
-import net.minecraftforge.client.event.RenderGameOverlayEvent;
-import net.minecraftforge.event.world.WorldEvent;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL30;
-
-import com.gtnewhorizons.angelica.glsm.GLStateManager;
-
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
@@ -29,10 +22,10 @@ import net.minecraft.client.gui.GuiIngame;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.EntityRenderer;
 import net.minecraft.client.renderer.OpenGlHelper;
-import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.shader.Framebuffer;
 import net.minecraftforge.client.GuiIngameForge;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
+import net.minecraftforge.event.world.WorldEvent;
 import org.lwjgl.opengl.GL11;
 import thaumcraft.common.Thaumcraft;
 import xaero.common.core.XaeroMinimapCore;
@@ -74,7 +67,7 @@ public class HUDCaching {
 
     private HUDCaching() {}
 
-    // 保留WorldEvent.Load监听器，确保帧缓冲在游戏开始时初始化
+    // highest so it runs before the GLSM load event
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void onJoinWorld(WorldEvent.Load event) {
         if (event.world.isRemote){
@@ -218,228 +211,4 @@ public class HUDCaching {
         GLStateManager.enableDepthTest();
         GLStateManager.enableAlphaTest();
         GLStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
-        GLStateManager.disableBlend();
-    }
-
-    private static void drawTexturedRect(float width, float height) {
-        if (quadWidth != width || quadHeight != height) {
-            quadWidth = width;
-            quadHeight = height;
-            if (quadVAO != null) {
-                quadVAO.close();
-            }
-            quadVAO = rebuildVAO(width, height);
-        }
-        
-        // 保存当前状态
-        boolean depthTest = GL11.glGetBoolean(GL11.GL_DEPTH_TEST);
-        boolean stencilTest = GL11.glGetBoolean(GL11.GL_STENCIL_TEST);
-        boolean blend = GL11.glGetBoolean(GL11.GL_BLEND);
-        
-        // 渲染缓存纹理时禁用深度和模板测试
-        GLStateManager.disableDepthTest();
-        GLStateManager.disableStencilTest();
-        GLStateManager.enableTexture();
-        GLStateManager.enableBlend();
-        
-        quadVAO.render();
-        
-        // 恢复状态
-        if (depthTest) {
-            GLStateManager.enableDepthTest();
-        } else {
-            GLStateManager.disableDepthTest();
-        }
-        
-        if (stencilTest) {
-            GLStateManager.enableStencilTest();
-        } else {
-            GLStateManager.disableStencilTest();
-        }
-        
-        if (!blend) {
-            GLStateManager.disableBlend();
-        }
-    }
-
-
-    private static VertexBuffer rebuildVAO(float width, float height) {
-        final CapturingTessellator tessellator = TessellatorManager.startCapturingAndGet();
-        tessellator.startDrawingQuads();
-        tessellator.addVertexWithUV(0, height, 0.0, 0, 0);
-        tessellator.addVertexWithUV(width, height, 0.0, 1, 0);
-        tessellator.addVertexWithUV(width, 0, 0.0, 1, 1);
-        tessellator.addVertexWithUV(0, 0, 0.0, 0, 1);
-        tessellator.draw();
-        return TessellatorManager.stopCapturingToVAO(DefaultVertexFormat.POSITION_TEXTURE);
-    }
-
-    public static void disableHoloInventory() {
-        if (ModStatus.isHoloInventoryLoaded) {
-            HoloInventoryReflectionCompat.setAngelicaOverride(true);
-        }
-    }
-
-    @SuppressWarnings("unused") // called via ASM
-    public static class HUDCachingHooks {
-        public static boolean shouldReturnEarly() {
-            return renderingCacheOverride;
-        }
-    }
-}            GuiIngameForgeAccessor guiForge = ((GuiIngameForgeAccessor) ingame);
-            if (renderHelmetCaptured) {
-                guiForge.callRenderHelmet(resolution, partialTicks, hasScreen, mouseX, mouseY);
-                if (ModStatus.isHoloInventoryLoaded) {
-                    HoloInventoryReflectionCompat.setAngelicaOverride(false);
-                    // only settings the partial ticks as mouseX and mouseY are not used in renderEvent
-                    ((RenderGameOverlayEventAccessor) fakePostEvent).setPartialTicks(partialTicks);
-                    HoloInventoryReflectionCompat.renderEvent(fakePostEvent);
-                }
-            }
-            if (renderPortalCapturedTicks > 0) {
-                guiForge.callRenderPortal(width, height, partialTicks);
-            }
-            if (renderCrosshairsCaptured) {
-                if (ModStatus.isXaerosMinimapLoaded) {
-                    // this fixes the crosshair going invisible when no lines are being drawn under the minimap
-                    GLStateManager.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-                }
-                guiForge.callRenderCrosshairs(width, height);
-            }
-            if (ModStatus.isThaumcraftLoaded || ModStatus.isThaumicHorizonsLoaded) {
-                ((RenderGameOverlayEventAccessor) fakeTextEvent).setPartialTicks(partialTicks);
-                ((RenderGameOverlayEventAccessor) fakeTextEvent).setResolution(resolution);
-                ((RenderGameOverlayEventAccessor) fakeTextEvent).setMouseX(mouseX);
-                ((RenderGameOverlayEventAccessor) fakeTextEvent).setMouseY(mouseY);
-                if (ModStatus.isThaumcraftLoaded) {
-                    Thaumcraft.instance.renderEventHandler.renderOverlay(fakeTextEvent);
-                }
-                if (ModStatus.isThaumicHorizonsLoaded) {
-                    ThaumicHorizons.instance.renderEventHandler.renderOverlay(fakeTextEvent);
-                }
-            }
-        } else {
-            if (renderHelmetCaptured) {
-                gui.callRenderPumpkinBlur(width, height);
-            }
-            if (renderPortalCapturedTicks > 0) {
-                gui.callRenderPortal(renderPortalCapturedTicks, width, height);
-            }
-        }
-
-        // render cached frame
-        GLStateManager.enableBlend();
-        GLStateManager.tryBlendFuncSeparate(GL11.GL_ONE, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GLStateManager.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-        framebuffer.bindFramebufferTexture();
-        // 设置纹理过滤参数
-        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
-        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
-        drawTexturedRect((float) resolution.getScaledWidth_double(), (float) resolution.getScaledHeight_double());
-
-        GLStateManager.tryBlendFuncSeparate(GL11.GL_ONE, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
-        mc.getTextureManager().bindTexture(Gui.icons);
-    }
-
-    /**
-     * We are skipping certain render calls when rendering into cache,
-     * however, we cannot skip the GL state changes. This will fix
-     * the state before we start rendering
-     */
-    public static void fixGLStateBeforeRenderingCache() {
-        GLStateManager.glDepthMask(true);
-        GLStateManager.enableDepthTest();
-        GLStateManager.enableAlphaTest();
-        GLStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
-        GLStateManager.disableBlend();
-    }
-
-    private static void drawTexturedRect(float width, float height) {
-        if (quadWidth != width || quadHeight != height) {
-            quadWidth = width;
-            quadHeight = height;
-            if (quadVAO != null) {
-                quadVAO.close();
-            }
-            quadVAO = rebuildVAO(width, height);
-        }
-        GLStateManager.disableDepthTest();
-        GLStateManager.disableAlphaTest();
-        GLStateManager.enableTexture();
-        quadVAO.render();
-        GLStateManager.enableDepthTest();
-        GLStateManager.enableAlphaTest();
-    }
-
-
-    private static VertexBuffer rebuildVAO(float width, float height) {
-        final CapturingTessellator tessellator = TessellatorManager.startCapturingAndGet();
-        tessellator.startDrawingQuads();
-        tessellator.addVertexWithUV(0, height, 0.0, 0, 0);
-        tessellator.addVertexWithUV(width, height, 0.0, 1, 0);
-        tessellator.addVertexWithUV(width, 0, 0.0, 1, 1);
-        tessellator.addVertexWithUV(0, 0, 0.0, 0, 1);
-        tessellator.draw();
-        return TessellatorManager.stopCapturingToVAO(DefaultVertexFormat.POSITION_TEXTURE);
-    }
-
-    public static void disableHoloInventory() {
-        if (ModStatus.isHoloInventoryLoaded) {
-            HoloInventoryReflectionCompat.setAngelicaOverride(true);
-        }
-    }
-
-    @SuppressWarnings("unused") // called via ASM
-    public static class HUDCachingHooks {
-        public static boolean shouldReturnEarly() {
-            return renderingCacheOverride;
-        }
-        
-        public static boolean shouldRenderCrosshair() {
-            return !renderingCacheOverride || renderCrosshairsCaptured;
-        }
-        
-        public static boolean shouldRenderHelmet() {
-            return !renderingCacheOverride || renderHelmetCaptured;
-        }
-        
-        public static boolean shouldRenderPortal() {
-            return !renderingCacheOverride || renderPortalCapturedTicks > 0;
-        }
-        
-        public static boolean shouldRenderVignette() {
-            return !renderingCacheOverride || renderVignetteCaptured;
-        }
-        
-        public static void captureCrosshair() {
-            if (renderingCacheOverride) {
-                renderCrosshairsCaptured = true;
-            }
-        }
-        
-        public static void captureHelmet() {
-            if (renderingCacheOverride) {
-                renderHelmetCaptured = true;
-            }
-        }
-        
-        public static void capturePortal(float ticks) {
-            if (renderingCacheOverride) {
-                renderPortalCapturedTicks = ticks;
-            }
-        }
-        
-        public static void captureVignette() {
-            if (renderingCacheOverride) {
-                renderVignetteCaptured = true;
-            }
-        }
-        
-        public static void resetCaptures() {
-            renderCrosshairsCaptured = false;
-            renderHelmetCaptured = false;
-            renderPortalCapturedTicks = 0;
-            renderVignetteCaptured = false;
-        }
-    }
-}
+        GLStat
