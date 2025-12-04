@@ -115,12 +115,14 @@ public class GLStateManager {
     @Getter protected static boolean poppingAttributes;
     public static boolean BYPASS_CACHE = Boolean.parseBoolean(System.getProperty("angelica.disableGlCache", "false"));
     // +2 headroom for internal operations (display list compilation) that push cache but not driver
-    public static final int MAX_ATTRIB_STACK_DEPTH = GL11.glGetInteger(GL11.GL_MAX_ATTRIB_STACK_DEPTH) + 2;
-    public static final int MAX_MODELVIEW_STACK_DEPTH = GL11.glGetInteger(GL11.GL_MAX_MODELVIEW_STACK_DEPTH) + 2;
-    public static final int MAX_PROJECTION_STACK_DEPTH = GL11.glGetInteger(GL11.GL_MAX_PROJECTION_STACK_DEPTH);
-    public static final int MAX_TEXTURE_STACK_DEPTH = GL11.glGetInteger(GL11.GL_MAX_TEXTURE_STACK_DEPTH);
-    public static final int MAX_TEXTURE_UNITS = GL11.glGetInteger(GL20.GL_MAX_TEXTURE_IMAGE_UNITS);
-    public static final int MAX_CLIP_PLANES = GL11.glGetInteger(GL11.GL_MAX_CLIP_PLANES);
+    // 修改为适合移动设备/OpenGL ES环境的固定值
+    public static final int MAX_ATTRIB_STACK_DEPTH = 32;
+    public static final int MAX_MODELVIEW_STACK_DEPTH = 64;
+    public static final int MAX_PROJECTION_STACK_DEPTH = 4;
+    public static final int MAX_TEXTURE_STACK_DEPTH = 4;
+    public static final int MAX_CLIP_PLANES = 8;
+    public static final int MAX_TEXTURE_UNITS = 16;
+    public static final int DEFAULT_DRAW_BUFFER = GL11.GL_BACK;
 
     public static final GLFeatureSet HAS_MULTIPLE_SET = new GLFeatureSet();
 
