@@ -108,13 +108,22 @@ public class CeleritasWorldRenderer extends SimpleWorldRenderer<WorldClient, Ang
     }
 
     private ChunkVertexType chooseVertexType() {
-        final IrisShaderProvider provider = IrisShaderProviderHolder.getProvider();
-        if (provider != null && provider.isShadersEnabled()) {
-            final ChunkVertexType extended = provider.getVertexType(ChunkMeshFormats.VANILLA_LIKE);
-            if (extended != ChunkMeshFormats.VANILLA_LIKE) {
-                return extended;
-            }
-        }
+
+    LOGGER.info("Choosing vertex type...");
+    
+    ChunkVertexType selectedType;
+    
+    if (SodiumClientMod.options().advanced.useCompactVertexFormat) {
+        selectedType = ChunkMeshFormats.COMPACT;
+        LOGGER.info("Selected compact vertex format based on Sodium settings");
+    } else {
+        selectedType = ChunkMeshFormats.VANILLA_LIKE;
+        LOGGER.info("Selected vanilla-like vertex format based on Sodium settings");
+    }
+
+    LOGGER.info("Final vertex type selection: {}", selectedType);
+    return selectedType;
+    }
 
         if (SodiumClientMod.options().advanced.useCompactVertexFormat) {
             return ChunkMeshFormats.COMPACT;
